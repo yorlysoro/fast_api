@@ -75,16 +75,19 @@ movies = [
 def message():
     return HTMLResponse('<h1>Hello World!</h1>')
 
+
 @app.get('/login', tags=['auth'])
-def login(user: User):
-    return user
+def login(user: User) -> JSONResponse:
+    if user.email == "admin@gmail.com" and user.password == "admin":
+        token: str = create_token(user.dict())
+        return JSONResponse(status_code=200, content=token)
 
 
 @app.get('/movies',
          tags=['movies'],
          response_model=List[Movie],
          status_code=200
-)
+         )
 def get_movies() -> JSONResponse:
     return JSONResponse(status_code=200, content=Movie)
 
@@ -93,7 +96,7 @@ def get_movies() -> JSONResponse:
          tags=['movies'],
          response_model=Movie,
          status_code=200
-)
+         )
 def get_movie(id: int = Path(ge=1, le=2000)) -> JSONResponse:
     for item in movies:
         if item["id"] == id:
@@ -104,7 +107,7 @@ def get_movie(id: int = Path(ge=1, le=2000)) -> JSONResponse:
 @app.get('/movies/',
          tags=['movies'],
          response_model=List[Movie]
-)
+         )
 def get_movies_by_category(category: str = Query(min_length=5, max_length=15),
                            year: int = Query(min_value=2010, max_value=2020)) -> JSONResponse:
     data = [item for item in movies if item['category'] == category or item['year'] == str(year)]
@@ -115,7 +118,7 @@ def get_movies_by_category(category: str = Query(min_length=5, max_length=15),
           tags=['movies'],
           response_model=dict,
           status_code=201
-)
+          )
 def create_movie(
         id: int,
         movie: Movie
@@ -128,7 +131,7 @@ def create_movie(
          tags=['movies'],
          response_model=dict,
          status_code=200
-)
+         )
 def update_movie(
         id: int,
         movie: Movie
@@ -147,7 +150,7 @@ def update_movie(
             tags=['movies'],
             response_model=dict,
             status_code=200
-)
+            )
 def delete_movie(id: int) -> JSONResponse:
     for item in movies:
         if item["id"] == id:
