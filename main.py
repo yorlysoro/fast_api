@@ -137,7 +137,11 @@ def create_movie(
         id: int,
         movie: Movie
 ) -> JSONResponse:
-    movies.append(movie)
+    db = Session()
+    new_movie = MovieModel(**movie.dict())
+    db.add(new_movie)
+    db.commit()
+    db.close()
     return JSONResponse(status_code=201, content={"message": "La pelicula ha sido creada con exito"})
 
 
