@@ -86,7 +86,7 @@ def message():
 
 
 @app.get('/login', tags=['auth'])
-def login(user: User) -> JSONResponse:
+def login(user: User):
     if user.email == "admin@gmail.com" and user.password == "admin":
         token: str = create_token(user.dict())
         return JSONResponse(status_code=200, content=token)
