@@ -22,6 +22,7 @@ from jwt_manager import create_token, validate_token
 from fastapi.security import HTTPBearer
 from config.database import Session, engine, Base
 from models.movie import Movie as MovieModel
+from fastapi.encoders import jsonable_encoder
 
 app = FastAPI()
 app.title = "Aplicacion con FastAPI"
@@ -103,7 +104,10 @@ def login(user: User):
          dependencies=[Depends(JWTBearer())]
          )
 def get_movies() -> JSONResponse:
-    return JSONResponse(status_code=200, content=Movie)
+    db = Session()
+    result = db.query(MovieModel).all()
+    db.close()
+    return JSONResponse(status_code=200, content=jsonable_encoder(result))
 
 
 @app.get('/movies/{id}',
@@ -112,20 +116,24 @@ def get_movies() -> JSONResponse:
          status_code=200
          )
 def get_movie(id: int = Path(ge=1, le=2000)) -> JSONResponse:
-    for item in movies:
-        if item["id"] == id:
-            return JSONResponse(status_code=200, content=item)
-    return JSONResponse(status_code=404, content=[])
+    db = Session()
+    result = db.query(MovieModel).filter(MovieModel.id == id).first()
+    db.close()
+    if not result:
+        return JSONResponse(status_code=404, content={'message': "Pelicula no encontrada"})
+    return JSONResponse(status_code=200, content=jsonable_encoder(result))
 
 
 @app.get('/movies/',
          tags=['movies'],
          response_model=List[Movie]
          )
-def get_movies_by_category(category: str = Query(min_length=5, max_length=15),
-                           year: int = Query(min_value=2010, max_value=2020)) -> JSONResponse:
-    data = [item for item in movies if item['category'] == category or item['year'] == str(year)]
-    return JSONResponse(content=data)
+def get_movies_by_category(category: str = Query(min_length=5, max_length=15)) -> JSONResponse:
+    db = Session()
+    result = db.query(MovieModel).filter(MovieModel.category == category).first()
+    if not result:
+        return JSONResponse(status_code=404, content={'message': "Pelicula no encontrada"})
+    return JSONResponse(status_code=200, content=jsonable_encoder(result))
 
 
 @app.post('/movies',
