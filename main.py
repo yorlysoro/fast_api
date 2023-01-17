@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 #  This program is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
 #  the Free Software Foundation; either version 2 of the License, or
@@ -90,7 +92,7 @@ def message():
     return HTMLResponse('<h1>Hello World!</h1>')
 
 
-@app.get('/login', tags=['auth'])
+@app.post('/login', tags=['auth'])
 def login(user: User):
     if user.email == "admin@gmail.com" and user.password == "admin":
         token: str = create_token(user.dict())
@@ -162,14 +164,18 @@ def update_movie(
         id: int,
         movie: Movie
 ) -> JSONResponse:
-    for i, item in enumerate(movies):
-        if item["id"] == id:
-            item["title"] = movie.title
-            item["overview"] = movie.overview
-            item["year"] = movie.year
-            item["rating"] = movie.rating
-            item["category"] = movie.category
-            return JSONResponse(status_code=200, content={"message": "Se ha modificado la pelicula correctamente"})
+    db = Session()
+    result = db.query(MovieModel).filter(MovieModel.id == id).first()
+    if not result:
+        return JSONResponse(status_code=404, content={"message": "No encontrado!!"})
+    result.title = movie.title
+    result.overview = movie.overview
+    result.year = movie.year
+    result.rating = movie.rating
+    result.category = movie.category
+    db.commit()
+    db.close()
+    return JSONResponse(status_code=200, content={"message": "Se ha modificado"})
 
 
 @app.delete('/movies/{id}',
@@ -178,7 +184,11 @@ def update_movie(
             status_code=200
             )
 def delete_movie(id: int) -> JSONResponse:
-    for item in movies:
-        if item["id"] == id:
-            movies.remove(item)
-            return JSONResponse(status_code=200, content={"message": "La pelicula ha sido eliminada"})
+    db = Session()
+    result = db.query(MovieModel).filter(MovieModel.id == id).first()
+    if not result:
+        return JSONResponse(status_code=404, content={"message": "No encontrado!!"})
+    db.delete(result)
+    db.commit()
+    db.close()
+    return JSONResponse(status_code=200, content={"message": "Se ha eliminado correctamente"})
