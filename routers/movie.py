@@ -18,36 +18,15 @@
 from fastapi import APIRouter
 from fastapi import Depends, Path, Query
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, Field
-from typing import Optional, List
+from typing import List
 from config.database import Session
 from models.movie import Movie as MovieModel
 from fastapi.encoders import jsonable_encoder
 from middlewares.jwt_bearer import JWTBearer
 from services.movie import MovieService
+from schemas.movie import Movie
 
 movie_router = APIRouter()
-
-
-class Movie(BaseModel):
-    id: Optional[int] = None
-    title: str = Field(min_length=5, max_length=15)
-    overview: str = Field(min_length=15, max_length=50)
-    year: int = Field(le=2022)
-    rating: float = Field(default=10, ge=1, le=10)
-    category: str = Field(default="Categoria", min_length=5, max_length=15)
-
-    class Config:
-        schema_extra = {
-            "example": {
-                "id": 1,
-                "title": "Mi pelicula",
-                "overview": "Descripcion de la pelicula",
-                "year": 2022,
-                "rating": 8.5,
-                "category": "Accion"
-            }
-        }
 
 
 @movie_router.get('/movies',
@@ -99,10 +78,7 @@ def create_movie(
         movie: Movie
 ) -> JSONResponse:
     db = Session()
-    new_movie = MovieModel(**movie.dict())
-    db.add(new_movie)
-    db.commit()
-    db.close()
+    MovieService(db).create_movie(movie)
     return JSONResponse(status_code=201, content={"message": "La pelicula ha sido creada con exito"})
 
 
@@ -116,16 +92,10 @@ def update_movie(
         movie: Movie
 ) -> JSONResponse:
     db = Session()
-    result = db.query(MovieModel).filter(MovieModel.id == id).first()
+    result = MovieService(db).get_movie(id)
     if not result:
         return JSONResponse(status_code=404, content={"message": "No encontrado!!"})
-    result.title = movie.title
-    result.overview = movie.overview
-    result.year = movie.year
-    result.rating = movie.rating
-    result.category = movie.category
-    db.commit()
-    db.close()
+    MovieService(db).update_movie(id, movie)
     return JSONResponse(status_code=200, content={"message": "Se ha modificado"})
 
 
